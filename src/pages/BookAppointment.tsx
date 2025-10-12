@@ -74,20 +74,29 @@ const BookAppointment = () => {
       return;
     }
 
-    // Check if using mock data (non-UUID IDs)
+    // Check if using mock data and handle accordingly
     if (!isValidUUID(workshopId) || !isValidUUID(serviceId)) {
       toast({
         title: 'Demo Mode',
-        description: 'This app is using mock data. Please add real workshops and services to your Supabase database to enable bookings. Check SETUP.md for instructions.',
-        variant: 'destructive',
+        description: 'Using mock data. In a real app, this would save to your database.',
+        variant: 'default',
       });
-      setLoading(false);
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
       return;
     }
 
     setLoading(true);
 
     try {
+      // Check if we can connect to Supabase first
+      const { error: connectionError } = await supabase.from('appointments').select('id', { count: 'exact', head: true });
+      
+      if (connectionError) {
+        throw new Error('Failed to fetch data from the server. Please check your connection and try again.');
+      }
+      
       const { error } = await supabase
         .from('appointments')
         .insert({
@@ -108,9 +117,10 @@ const BookAppointment = () => {
       });
       navigate('/');
     } catch (error: any) {
+      console.error('Booking error:', error);
       toast({
         title: 'Booking Failed',
-        description: error.message || 'Failed to book appointment. Please try again.',
+        description: error.message || 'Failed to connect to the database. Please check your connection and try again.',
         variant: 'destructive',
       });
     } finally {
